@@ -39,15 +39,33 @@ def samples_to_frames(samples, sample_width):
     return samples.astype(TYPES[sample_width]).tostring()
 
 
-def reverse(channels):
+def reverse(track):
     result = []
     for channel in channels:
         result.append(np.flip(channel))
     return result
 
 
+def speed_up(track):
+    frame_rate = track.getframerate()
+    frame_rate = int(frame_rate * 1.5)
+    return frame_rate
+
+
+def slow_down(track):
+    frame_rate = track.getframerate()
+    frame_rate = int(frame_rate // 2)
+    return frame_rate
+
+
 file_name = "new.wav"
+print("What u want to do with file?")
+print("Reverse - re")
+print("Speed up - sp")
+print("Slow down - sd")
+
 with wave.open(file_name, "rb") as wave_read:
+    track = wave_read
     sample_width = wave_read.getsampwidth()
     frame_rate = wave_read.getframerate()
     channels_count = wave_read.getnchannels()
@@ -55,7 +73,6 @@ with wave.open(file_name, "rb") as wave_read:
     channels = frames_to_channels(
         wave_read.readframes(wave_read.getnframes()),
         sample_width, wave_read.getnchannels())
-    # print(wave_read.getparams())
 # print(sample_width)
 # print(frame_rate)
 # print(channels_count)
@@ -63,14 +80,21 @@ with wave.open(file_name, "rb") as wave_read:
 # for channel in channels:
 #     for i in channel:
 #         print(i)
-reversed = reverse(channels)
+command = input()
+if command == "sp":
+    frame_rate = speed_up(track)
+elif command == "re":
+    channels = reverse(track)
+elif command == "sd":
+    frame_rate = slow_down(track)
+
 # print(reversed)
 with wave.open("result.wav", "wb") as new_file:
     new_file.setnchannels(channels_count)
     new_file.setsampwidth(sample_width)
     new_file.setframerate(frame_rate)
     new_file.setnframes(frames)
-    result_frames = channels_to_frames(reversed, sample_width)
+    result_frames = channels_to_frames(channels, sample_width)
     new_file.writeframes(result_frames)
     length = frames / frame_rate
     print(length)
