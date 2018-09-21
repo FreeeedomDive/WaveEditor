@@ -46,22 +46,22 @@ def reverse(track):
     return result
 
 
-def speed_up(track):
+def speed_up(track, fast):
     frame_rate = track.getframerate()
-    frame_rate = int(frame_rate * 1.5)
+    frame_rate = int(frame_rate * fast)
     return frame_rate
 
 
-def slow_down(track):
+def slow_down(track, slow):
     frame_rate = track.getframerate()
-    frame_rate = int(frame_rate // 2)
+    frame_rate = int(frame_rate // slow)
     return frame_rate
 
 
-file_name = "new.wav"
+file_name = "02. Rammstein – Mein Teil.wav"
 print("What u want to do with file?")
 print("Reverse - re")
-print("Speed up - sp")
+print("Speed up - su")
 print("Slow down - sd")
 
 with wave.open(file_name, "rb") as wave_read:
@@ -81,12 +81,16 @@ with wave.open(file_name, "rb") as wave_read:
 #     for i in channel:
 #         print(i)
 command = input()
-if command == "sp":
-    frame_rate = speed_up(track)
+if command == "su":
+    print("Enter degree of fast:")
+    fast = float(input())
+    frame_rate = speed_up(track, fast)
+elif command == "sd":
+    print("Enter degree of slow:")
+    slow = float(input())
+    frame_rate = slow_down(track, slow)
 elif command == "re":
     channels = reverse(track)
-elif command == "sd":
-    frame_rate = slow_down(track)
 
 # print(reversed)
 with wave.open("result.wav", "wb") as new_file:
