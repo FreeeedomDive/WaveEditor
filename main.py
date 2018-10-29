@@ -1,5 +1,5 @@
 import numpy as np
-import wave_file
+import wave
 
 TYPES = {
     1: np.int8,
@@ -64,22 +64,16 @@ print("Reverse - re")
 print("Speed up - su")
 print("Slow down - sd")
 
-with wave_file.open(file_name, "rb") as wave_read:
+with wave.open(file_name, "rb") as wave_read:
     track = wave_read
     sample_width = wave_read.getsampwidth()
     frame_rate = wave_read.getframerate()
     channels_count = wave_read.getnchannels()
-    frames = wave_read.getnframes()
+    frames_count = wave_read.getnframes()
     channels = frames_to_channels(
         wave_read.readframes(wave_read.getnframes()),
         sample_width, wave_read.getnchannels())
-# print(sample_width)
-# print(frame_rate)
-# print(channels_count)
-# print(channels)
-# for channel in channels:
-#     for i in channel:
-#         print(i)
+
 command = input()
 if command == "su":
     print("Enter degree of fast:")
@@ -93,14 +87,14 @@ elif command == "re":
     channels = reverse(track)
 
 # print(reversed)
-with wave_file.open("result.wav", "wb") as new_file:
+with wave.open("result.wav", "wb") as new_file:
     new_file.setnchannels(channels_count)
     new_file.setsampwidth(sample_width)
     new_file.setframerate(frame_rate)
-    new_file.setnframes(frames)
+    new_file.setnframes(frames_count)
     result_frames = channels_to_frames(channels, sample_width)
     new_file.writeframes(result_frames)
-    length = frames / frame_rate
+    length = frames_count / frame_rate
     print(length)
 
 print("Done!")
