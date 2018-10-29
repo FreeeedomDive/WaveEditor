@@ -1,5 +1,5 @@
 import numpy as np
-import wave
+import wave_file
 
 TYPES = {
     1: np.int8,
@@ -64,7 +64,7 @@ print("Reverse - re")
 print("Speed up - su")
 print("Slow down - sd")
 
-with wave.open(file_name, "rb") as wave_read:
+with wave_file.open(file_name, "rb") as wave_read:
     track = wave_read
     sample_width = wave_read.getsampwidth()
     frame_rate = wave_read.getframerate()
@@ -93,7 +93,7 @@ elif command == "re":
     channels = reverse(track)
 
 # print(reversed)
-with wave.open("result.wav", "wb") as new_file:
+with wave_file.open("result.wav", "wb") as new_file:
     new_file.setnchannels(channels_count)
     new_file.setsampwidth(sample_width)
     new_file.setframerate(frame_rate)
