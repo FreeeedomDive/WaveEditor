@@ -1,5 +1,6 @@
 import wave_file
 import wx
+import sys
 
 
 class CLI:
@@ -12,7 +13,9 @@ class CLI:
         app = wx.App(False)
         openFileDialog = wx.FileDialog(None, "DAI MNE WAV", "", "",
                                        "Wave files (*.wav)|*.wav")
-        openFileDialog.ShowModal()
+        if openFileDialog.ShowModal() == wx.ID_CANCEL:
+            print("No selected file")
+            sys.exit(0)
         path = openFileDialog.GetPath()
         openFileDialog.Destroy()
         self.file = wave_file.Wave(path)
@@ -28,18 +31,27 @@ class CLI:
                 self.execute_command(command)
 
     def execute_command(self, command):
-        if command == "re":
+        if command == "reverse":
             self.file.reverse()
-        elif command == "su":
+        elif command == "speed_up":
             print("Enter speed rate")
             rate = float(input())
             self.file.speed_up(rate)
-        elif command == "sd":
+        elif command == "speed_down":
             print("Enter slow rate")
             rate = float(input())
             self.file.speed_down(rate)
-        elif command == "fi":
-            print("Enter length (in seconds for fade in")
-            length = float(input())
+        elif command == "fade_in":
+            print("Enter length (in seconds) for fade in")
+            rate = float(input())
+            self.file.fade_in(rate)
+        elif command == "fade_out":
+            print("Enter length (in seconds) for fade out")
+            rate = float(input())
+            self.file.fade_out(rate)
+        elif command == "volume":
+            print("Enter new value of volume")
+            rate = float(input())
+            self.file.change_volume(rate)
         else:
             print("Unexpected command!")

@@ -78,7 +78,8 @@ class Wave:
         self.subchunk2Size = int.from_bytes(file.read(4), "little")
         self.data = file.read(self.subchunk2Size)
 
-        self.channels = frames_to_channels(self.data, self.bitsPerSample, self.numChannels)
+        self.channels = frames_to_channels(self.data, self.bitsPerSample,
+                                           self.numChannels)
         file.close()
 
     def reverse(self):
@@ -94,11 +95,25 @@ class Wave:
         self.sampleRate = int(self.sampleRate // rate)
 
     def fade_in(self, rate):
-        length = self.sampleRate * rate
+        length = int(self.sampleRate * rate)
         amount = 1 / length
         array = []
-        new_channels = []
         for i in range(0, length):
             array.append(amount * i)
-            for ch in self.channels:
-                new_channels[j] = ch[i] * array[i]
+            for channel in self.channels:
+                channel[i] *= array[i]
+
+    def fade_out(self, rate):
+        length = int(self.sampleRate * rate)
+        amount = 1 / length
+        array = []
+        for i in range(0, length):
+            array.append(amount * i)
+            for channel in self.channels:
+                channel[len(channel) - i - 1] *= array[i]
+
+    def change_volume(self, rate):
+        new_channels = []
+        for channel in self.channels:
+            new_channels.append(channel * rate)
+        self.channels = new_channels
