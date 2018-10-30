@@ -1,9 +1,9 @@
 import numpy as np
 
 TYPES = {
-    1: np.int8,
-    2: np.int16,
-    4: np.int32
+    8: np.int8,
+    16: np.int16,
+    32: np.int32
 }
 
 
@@ -41,19 +41,19 @@ def samples_to_frames(samples, sample_width):
 
 def create_file(filename, file):
     with open(filename, 'wb') as f:
-        f.write(file.chunkId.encode())
-        f.write(bytes(file.chunkSize))
-        f.write(file.format.encode())
-        f.write(file.subchunk1Id.encode())
-        f.write(bytes(file.subchunk1Size))
-        f.write(bytes(file.audioFormat))
-        f.write(bytes(file.numChannels))
-        f.write(bytes(file.sampleRate))
-        f.write(bytes(file.byteRate))
-        f.write(bytes(file.blockAlign))
-        f.write(bytes(file.bitsPerSample * 8))
-        f.write(file.subchunk2Id.encode())
-        f.write(bytes(file.subchunk2Size))
+        f.write(file.chunkId.encode("UTF-8"))
+        f.write(file.chunkSize.to_bytes(4, byteorder="little"))
+        f.write(file.format.encode("UTF-8"))
+        f.write(file.subchunk1Id.encode("UTF-8"))
+        f.write(file.subchunk1Size.to_bytes(4, byteorder="little"))
+        f.write(file.audioFormat.to_bytes(2, byteorder="little"))
+        f.write(file.numChannels.to_bytes(2, byteorder="little"))
+        f.write(file.sampleRate.to_bytes(4, byteorder="little"))
+        f.write(file.byteRate.to_bytes(4, byteorder="little"))
+        f.write(file.blockAlign.to_bytes(2, byteorder="little"))
+        f.write(int(file.bitsPerSample).to_bytes(2, "little"))
+        f.write(file.subchunk2Id.encode("UTF-8"))
+        f.write(file.subchunk2Size.to_bytes(4, "little"))
         f.write(bytes(channels_to_frames(file.channels,
                                          file.bitsPerSample)))
 
@@ -73,13 +73,12 @@ class Wave:
         self.sampleRate = int.from_bytes(file.read(4), "little")
         self.byteRate = int.from_bytes(file.read(4), "little")
         self.blockAlign = int.from_bytes(file.read(2), "little")
-        self.bitsPerSample = int.from_bytes(file.read(2), "little") // 8
+        self.bitsPerSample = int.from_bytes(file.read(2), "little")
         self.subchunk2Id = file.read(4).decode("UTF-8")
         self.subchunk2Size = int.from_bytes(file.read(4), "little")
         self.data = file.read(self.subchunk2Size)
 
-        self.channels = frames_to_channels(self.data, self.numChannels,
-                                           self.bitsPerSample)
+        self.channels = frames_to_channels(self.data, self.bitsPerSample, self.numChannels)
         file.close()
 
     def reverse(self):
@@ -93,3 +92,13 @@ class Wave:
 
     def speed_down(self, rate):
         self.sampleRate = int(self.sampleRate // rate)
+
+    def fade_in(self, rate):
+        length = self.sampleRate * rate
+        amount = 1 / length
+        array = []
+        new_channels = []
+        for i in range(0, length):
+            array.append(amount * i)
+            for ch in self.channels:
+                new_channels[j] = ch[i] * array[i]
