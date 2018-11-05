@@ -62,7 +62,7 @@ class Wave:
 
     def __init__(self, filename):
         file = open(filename, 'rb')
-
+        self.filename = filename
         self.chunkId = file.read(4).decode("UTF-8")
         self.chunkSize = int.from_bytes(file.read(4), "little")
         self.format = file.read(4).decode("UTF-8")
@@ -80,6 +80,8 @@ class Wave:
 
         self.channels = frames_to_channels(self.data, self.bitsPerSample,
                                            self.numChannels)
+
+        self.duration = self.subchunk2Size / self.sampleRate
         file.close()
 
     def reverse(self):
@@ -117,3 +119,19 @@ class Wave:
         for channel in self.channels:
             new_channels.append(channel * rate)
         self.channels = new_channels
+
+    def get_info(self):
+        info = "chunkID: " + self.chunkId
+        info += "\nchunkSize: " + str(self.chunkSize)
+        info += "\nformat: " + self.format
+        info += "\nsubchunk1ID: " + self.subchunk1Id
+        info += "\nsubchunk1Size: " + str(self.subchunk1Size)
+        info += "\naudioFormat: " + str(self.audioFormat)
+        info += "\nnumChannels: " + str(self.numChannels)
+        info += "\nsampleRate: " + str(self.sampleRate)
+        info += "\nbyteRate: " + str(self.byteRate)
+        info += "\nblockAlign: " + str(self.blockAlign)
+        info += "\nbitsPerSample: " + str(self.bitsPerSample)
+        info += "\nsubchunk2ID: " + self.subchunk2Id
+        info += "\nsubChunk2Size: " + str(self.subchunk2Size)
+        return info

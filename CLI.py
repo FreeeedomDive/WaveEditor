@@ -11,13 +11,13 @@ class CLI:
     def start(self):
         mainloop = True
         app = wx.App(False)
-        openFileDialog = wx.FileDialog(None, "DAI MNE WAV", "", "",
-                                       "Wave files (*.wav)|*.wav")
-        if openFileDialog.ShowModal() == wx.ID_CANCEL:
+        open_file_dialog = wx.FileDialog(None, "DAI MNE WAV", "", "",
+                                         "Wave files (*.wav)|*.wav")
+        if open_file_dialog.ShowModal() == wx.ID_CANCEL:
             print("No selected file")
             sys.exit(0)
-        path = openFileDialog.GetPath()
-        openFileDialog.Destroy()
+        path = open_file_dialog.GetPath()
+        open_file_dialog.Destroy()
         self.file = wave_file.Wave(path)
         print("Selected file: {0}".format(path))
         while mainloop:
@@ -53,5 +53,7 @@ class CLI:
             print("Enter new value of volume")
             rate = float(input())
             self.file.change_volume(rate)
+        elif command == "info":
+            print(self.file.get_info())
         else:
             print("Unexpected command!")
