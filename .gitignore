@@ -3,3 +3,4 @@ __pycache__/
 *.wav
 tasks.txt
 temp_plot.txt
+*.pickle

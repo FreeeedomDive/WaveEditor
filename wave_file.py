@@ -41,6 +41,8 @@ def samples_to_frames(samples, sample_width):
 
 def save_changes_in_file(filename, file):
     path = "Result/" + filename
+    # for i in range(0, len(file.channels[0])):
+    #     print(file.channels[0][i])
     with open(path, 'wb') as f:
         f.write(file.chunkId.encode("UTF-8"))
         f.write(file.chunkSize.to_bytes(4, byteorder="little"))
@@ -52,11 +54,46 @@ def save_changes_in_file(filename, file):
         f.write(file.sampleRate.to_bytes(4, byteorder="little"))
         f.write(file.byteRate.to_bytes(4, byteorder="little"))
         f.write(file.blockAlign.to_bytes(2, byteorder="little"))
-        f.write(int(file.bitsPerSample).to_bytes(2, "little"))
+        f.write(file.bitsPerSample.to_bytes(2, "little"))
         f.write(file.subchunk2Id.encode("UTF-8"))
         f.write(file.subchunk2Size.to_bytes(4, "little"))
         f.write(bytes(channels_to_frames(file.channels,
                                          file.bitsPerSample)))
+
+
+def create_file_from_channels(filename, channels):
+    path = "Result/" + filename
+    for i in range(0, len(channels[0])):
+        print(channels[0][i])
+    chunkID = "RIFF"
+    format = "WAVE"
+    subchunk1ID = "fmt"
+    subchunk2ID = "data"
+    subchunk1Size = 16
+    audioFormat = 1
+    numChannels = len(channels)
+    sampleRate = 44100
+    byteRate = 176400
+    blockAlign = 4
+    bitsPerSample = 16
+    subchunk2Size = len(channels[0]) * bitsPerSample // 4
+    chunkSize = subchunk2Size + 36
+    with open(path, 'wb') as f:
+        f.write(chunkID.encode("UTF-8"))
+        f.write(chunkSize.to_bytes(4, byteorder="little"))
+        f.write(format.encode("UTF-8"))
+        f.write(subchunk1ID.encode("UTF-8"))
+        f.write(subchunk1Size.to_bytes(4, byteorder="little"))
+        f.write(audioFormat.to_bytes(2, byteorder="little"))
+        f.write(numChannels.to_bytes(2, byteorder="little"))
+        f.write(sampleRate.to_bytes(4, byteorder="little"))
+        f.write(byteRate.to_bytes(4, byteorder="little"))
+        f.write(blockAlign.to_bytes(2, byteorder="little"))
+        f.write(bitsPerSample.to_bytes(2, "little"))
+        f.write(subchunk2ID.encode("UTF-8"))
+        f.write(subchunk2Size.to_bytes(4, "little"))
+        f.write(bytes(channels_to_frames(channels,
+                                         bitsPerSample)))
 
 
 class Wave:
