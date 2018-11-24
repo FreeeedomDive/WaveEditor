@@ -11,7 +11,7 @@ class CLI:
     def start(self):
         mainloop = True
         app = wx.App(False)
-        open_file_dialog = wx.FileDialog(None, "DAI MNE WAV", "", "",
+        open_file_dialog = wx.FileDialog(None, "Wave files", "", "",
                                          "Wave files (*.wav)|*.wav")
         if open_file_dialog.ShowModal() == wx.ID_CANCEL:
             print("No selected file")
@@ -25,7 +25,10 @@ class CLI:
             command = input()
             if command == "save":
                 print("Enter name for new file")
-                wave_file.create_file(input(), self.file)
+                name = input()
+                if name[-4:] != ".wav":
+                    name += ".wav"
+                wave_file.save_changes_in_file(name, self.file)
                 mainloop = False
             else:
                 self.execute_command(command)
@@ -42,14 +45,23 @@ class CLI:
             rate = float(input())
             self.file.speed_down(rate)
         elif command == "fade_in":
+            if self.file.audioFormat != 1:
+                print("This feature is unavailable for this file")
+                return
             print("Enter length (in seconds) for fade in")
             rate = float(input())
             self.file.fade_in(rate)
         elif command == "fade_out":
+            if self.file.audioFormat != 1:
+                print("This feature is unavailable for this file")
+                return
             print("Enter length (in seconds) for fade out")
             rate = float(input())
             self.file.fade_out(rate)
         elif command == "volume":
+            if self.file.audioFormat != 1:
+                print("This feature is unavailable for this file")
+                return
             print("Enter new value of volume")
             rate = float(input())
             self.file.change_volume(rate)

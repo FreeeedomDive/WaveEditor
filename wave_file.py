@@ -39,8 +39,9 @@ def samples_to_frames(samples, sample_width):
     return samples.astype(TYPES[sample_width]).tostring()
 
 
-def create_file(filename, file):
-    with open(filename, 'wb') as f:
+def save_changes_in_file(filename, file):
+    path = "Result/" + filename
+    with open(path, 'wb') as f:
         f.write(file.chunkId.encode("UTF-8"))
         f.write(file.chunkSize.to_bytes(4, byteorder="little"))
         f.write(file.format.encode("UTF-8"))
@@ -83,6 +84,12 @@ class Wave:
 
         self.duration = self.subchunk2Size / self.sampleRate
         file.close()
+
+    def get_fragment(self, start, end):
+        channels_fragment = []
+        for channel in self.channels:
+            channels_fragment.append(channel[start:end])
+        return channels_fragment
 
     def reverse(self):
         new_channels = []

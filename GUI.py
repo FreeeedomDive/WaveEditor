@@ -2,28 +2,28 @@ import wx
 import wave_file
 import sys
 import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.ticker as ticker
-import math
+import pickle
+import datetime
 
 types = {
     1: np.int8,
     2: np.int16,
     4: np.int32
 }
-peak = 0
 
 
 class GUI(wx.Frame):
     def __init__(self, parent, title):
-        wx.Frame.__init__(self, parent, title=title, size=(800, 800))
+        wx.Frame.__init__(self, parent, title=title, size=(1200, 800))
         self.Show(True)
 
-        self.files = []
+        self.file = None
 
         menu = wx.Menu()
-        open_item = menu.Append(wx.ID_ANY, "Open")
-        save_item = menu.Append(wx.ID_SAVE, "Save")
+        open_item = menu.Append(wx.ID_ANY, "Open file")
+        save_item = menu.Append(wx.ID_SAVE, "Save file")
+        open_project_item = menu.Append(wx.ID_ANY, "Open project")
+        save_project_item = menu.Append(wx.ID_ANY, "Save current project")
         clear_item = menu.Append(wx.ID_ANY, "Clear tracks")
         about_item = menu.Append(wx.ID_ABOUT, "About")
         exit_item = menu.Append(wx.ID_EXIT, "Exit")
@@ -32,10 +32,12 @@ class GUI(wx.Frame):
         self.SetMenuBar(bar)
         self.Bind(wx.EVT_MENU, self.on_open, open_item)
         self.Bind(wx.EVT_MENU, self.save, save_item)
+        self.Bind(wx.EVT_MENU, self.open_project, open_project_item)
+        self.Bind(wx.EVT_MENU, self.save_project, save_project_item)
         self.Bind(wx.EVT_MENU, self.clear_files, clear_item)
         self.Bind(wx.EVT_MENU, self.on_about, about_item)
         self.Bind(wx.EVT_MENU, self.on_exit, exit_item)
-        self.opened_files = "No files"
+        self.opened_files = "No file!"
         reverse_button = wx.BitmapButton(self,
                                          bitmap=wx.Bitmap(
                                              "Images/reverse.png"),
@@ -74,31 +76,49 @@ class GUI(wx.Frame):
         self.draw()
 
     def on_open(self, e):
-        if len(self.files) == 0:
-            open_file_dialog = wx.FileDialog(None, "DAI MNE WAV", "", "",
+        if self.file is None:
+            open_file_dialog = wx.FileDialog(None, "Wave files", "", "",
                                              "Wave files (*.wav)|*.wav")
             if open_file_dialog.ShowModal() == wx.ID_OK:
                 path = open_file_dialog.GetPath()
                 open_file_dialog.Destroy()
-                self.files.append(wave_file.Wave(path))
-                if len(self.files) == 1:
-                    self.opened_files = "Opened files:\n"
-                    self.opened_files += path
-                else:
-                    self.opened_files += "\n" + path
+                self.file = wave_file.Wave(path)
+                self.opened_files = "Opened file:\n"
+                self.opened_files += path
                 self.draw()
-                if self.files[0].audioFormat != 1:
+                if self.file.audioFormat != 1:
                     self.show_notification(
                         "File is encrypted! Some functions may not work",
                         "Warning!")
         else:
             self.show_notification("File is already opened", "Error")
 
+    def open_project(self, e):
+        open_file_dialog = wx.FileDialog(None, "Pickle files", "", "",
+                                         "Pickle files (*.pickle)|*.pickle")
+        if open_file_dialog.ShowModal() == wx.ID_OK:
+            path = open_file_dialog.GetPath()
+            open_file_dialog.Destroy()
+            with open(path, "rb") as file:
+                self.file = pickle.load(file)
+                self.opened_files = "Opened file:\n"
+                self.opened_files += self.file.filename
+                self.draw()
+                if self.file.audioFormat != 1:
+                    self.show_notification(
+                        "File is encrypted! Some functions may not work",
+                        "Warning!")
+
+    def save_project(self, e):
+        if self.file is not None:
+            d = datetime.datetime.now()
+            filename = "SavedProjects/save-{0}-{1}-{2}-{3}-{4}-{5}.pickle" \
+                .format(d.year, d.month, d.day, d.hour,
+                        d.minute, d.second)
+            with open(filename, 'wb') as file:
+                    pickle.dump(self.file, file)
+
     def draw(self):
-        if len(self.files) == 0:
-            message = "No files!"
-        else:
-            message = self.files[0].filename
         opened_files_panel = wx.StaticText(self,
                                            label=self.opened_files,
                                            pos=(10, 150),
@@ -111,16 +131,16 @@ class GUI(wx.Frame):
             name = dlg.GetValue()
             if name[-4:] != ".wav":
                 name += ".wav"
-            wave_file.create_file(name, self.files[0])
+            wave_file.save_changes_in_file(name, self.file)
         dlg.Destroy()
 
     def on_about(self, e):
         self.show_notification("This is the editor for wav files", "About")
 
     def clear_files(self, e):
-        self.files = []
+        self.file = None
         self.show_notification("Files list has been cleared", "Notice")
-        self.opened_files = "No files!"
+        self.opened_files = "No file!"
         self.draw()
 
     def on_exit(self, e):
@@ -131,18 +151,18 @@ class GUI(wx.Frame):
 
         if dlg.ShowModal() == wx.ID_OK:
             rate = float(dlg.GetValue())
-            self.files[0].speed_up(rate)
+            self.file.speed_up(rate)
         dlg.Destroy()
 
     def decrease_speed(self, e):
         dlg = wx.TextEntryDialog(self, 'Enter slow rate', 'Changing speed')
         if dlg.ShowModal() == wx.ID_OK:
             rate = float(dlg.GetValue())
-            self.files[0].speed_down(rate)
+            self.file.speed_down(rate)
         dlg.Destroy()
 
     def change_volume(self, e):
-        if self.files[0].audioFormat != 1:
+        if self.file.audioFormat != 1:
             self.show_notification(
                 "This file does not support this feature.",
                 "Unsupported operation")
@@ -151,11 +171,11 @@ class GUI(wx.Frame):
                                  'Volume')
         if dlg.ShowModal() == wx.ID_OK:
             volume = float(dlg.GetValue())
-            self.files[0].change_volume(volume)
+            self.file.change_volume(volume)
         dlg.Destroy()
 
     def fade_in(self, e):
-        if self.files[0].audioFormat != 1:
+        if self.file.audioFormat != 1:
             self.show_notification(
                 "This file does not support this feature.",
                 "Unsupported operation")
@@ -164,11 +184,11 @@ class GUI(wx.Frame):
                                  'Fade in')
         if dlg.ShowModal() == wx.ID_OK:
             rate = float(dlg.GetValue())
-            self.files[0].fade_in(rate)
+            self.file.fade_in(rate)
         dlg.Destroy()
 
     def fade_out(self, e):
-        if self.files[0].audioFormat != 1:
+        if self.file.audioFormat != 1:
             self.show_notification(
                 "This file does not support this feature.",
                 "Unsupported operation")
@@ -177,25 +197,20 @@ class GUI(wx.Frame):
                                  'Fade out')
         if dlg.ShowModal() == wx.ID_OK:
             rate = float(dlg.GetValue())
-            self.files[0].fade_out(rate)
+            self.file.fade_out(rate)
         dlg.Destroy()
 
     def reverse(self, e):
-        self.files[0].reverse()
+        self.file.reverse()
         self.show_notification("File has been reversed", "Reverse")
 
     def info(self, e):
-        if len(self.files) == 0:
-            message = "No files!"
+        if self.file is None:
+            message = "No file!"
         else:
             message = ""
-            for i in range(0, len(self.files)):
-                if i != 0:
-                    message += "\n\n"
-                track = self.files[i]
-                message += "Track {0}: {1}\n".format(str(i + 1),
-                                                     track.filename)
-                message += track.get_info()
+            message += "Track: {0}\n".format(self.file.filename)
+            message += self.file.get_info()
         self.show_notification(message, "Files")
 
     def show_notification(self, message, topic):
