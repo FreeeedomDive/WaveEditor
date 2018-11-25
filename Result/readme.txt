@@ -1,0 +1,1 @@
+Files that have been modified in the editor are placed in this folder.
