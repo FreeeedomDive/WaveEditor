@@ -231,19 +231,28 @@ class GUI(wx.Frame):
                     "Deleting")
                 return
             length = len(self.file.channels[0])
-            left_index = length // self.start_slider.GetMax() * left_border
-            right_index = length // self.start_slider.GetMax() * right_border
-            start = fragment.Fragment(
-                self.file.get_fragment(0, left_index - 1))
-            end = fragment.Fragment(
-                self.file.get_fragment(right_index + 1, length))
-            self.file.channels = fragment.concatenate_fragments((start, end))
+            left_index = length // max * left_border
+            right_index = length // max * right_border
+            if left_border == 0:
+                end = fragment.Fragment(
+                    self.file.get_fragment(right_index + 1, length))
+                self.file.channels = end.channels
+            elif right_border == max:
+                start = fragment.Fragment(
+                    self.file.get_fragment(0, left_index - 1))
+                self.file.channels = start.channels
+            else:
+                start = fragment.Fragment(
+                    self.file.get_fragment(0, left_index - 1))
+                end = fragment.Fragment(
+                    self.file.get_fragment(right_index + 1, length))
+                self.file.channels = fragment.concatenate_fragments(
+                    [start, end])
             self.file.subchunk2Size = len(
                 self.file.channels[0]) * self.file.bitsPerSample // 4
             self.file.chunkSize = self.file.subchunk2Size + 36
 
     def reverse_fragment(self, e):
-        print("reverse")
         if self.file is not None:
             max = self.start_slider.GetMax()
             left_border = self.start_slider.GetValue()
@@ -258,17 +267,34 @@ class GUI(wx.Frame):
                     "Reverse")
                 return
             length = len(self.file.channels[0])
-            left_index = length // self.start_slider.GetMax() * left_border
-            right_index = length // self.start_slider.GetMax() * right_border
-            start = fragment.Fragment(
-                self.file.get_fragment(0, left_index - 1))
-            fr = fragment.Fragment(
-                self.file.get_fragment(left_index, right_index))
-            fr.reverse()
-            end = fragment.Fragment(
-                self.file.get_fragment(right_index + 1, length))
-            self.file.channels = fragment.concatenate_fragments(
-                [start, fr, end])
+            left_index = length // max * left_border
+            right_index = length // max * right_border
+            if left_border == 0:
+                start = fragment.Fragment(
+                    self.file.get_fragment(0, right_index))
+                start.reverse()
+                end = fragment.Fragment(
+                    self.file.get_fragment(right_index + 1, length))
+                self.file.channels = fragment.concatenate_fragments(
+                    [start, end])
+            elif right_border == max:
+                start = fragment.Fragment(
+                    self.file.get_fragment(0, left_index - 1))
+                end = fragment.Fragment(
+                    self.file.get_fragment(left_index, length))
+                end.reverse()
+                self.file.channels = fragment.concatenate_fragments(
+                    [start, end])
+            else:
+                start = fragment.Fragment(
+                    self.file.get_fragment(0, left_index - 1))
+                fr = fragment.Fragment(
+                    self.file.get_fragment(left_index, right_index))
+                fr.reverse()
+                end = fragment.Fragment(
+                    self.file.get_fragment(right_index + 1, length))
+                self.file.channels = fragment.concatenate_fragments(
+                    [start, fr, end])
 
     def concatenate_saved_fragments(self, e):
         if len(self.fragments) != 0:
@@ -279,12 +305,12 @@ class GUI(wx.Frame):
                 name = dlg.GetValue()
                 if name[-4:] != ".wav":
                     name += ".wav"
-                # self.file.channels = compilation
-                # self.file.subchunk2Size = len(
-                #     self.file.channels[0]) * self.file.bitsPerSample // 4
-                # self.file.chunkSize = self.file.subchunk2Size + 36
-                # wave_file.save_changes_in_file(name, self.file)
-                wave_file.create_file_from_channels(name, compilation)
+                self.file.channels = compilation
+                self.file.subchunk2Size = len(
+                    self.file.channels[0]) * self.file.bitsPerSample // 4
+                self.file.chunkSize = self.file.subchunk2Size + 36
+                wave_file.save_changes_in_file(name, self.file)
+                # wave_file.create_file_from_channels(name, compilation)
             dlg.Destroy()
 
     def increase_speed(self, e):
