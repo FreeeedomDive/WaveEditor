@@ -16,7 +16,7 @@ types = {
 
 class GUI(wx.Frame):
     def __init__(self, parent, title):
-        wx.Frame.__init__(self, parent, title=title, size=(1000, 800))
+        wx.Frame.__init__(self, parent, title=title, size=(1050, 800))
         self.Show(True)
 
         self.file = None
@@ -119,7 +119,34 @@ class GUI(wx.Frame):
                                            validator=wx.DefaultValidator,
                                            name=wx.ButtonNameStr)
         self.Bind(wx.EVT_BUTTON, self.cut_fragment, delete_fragment_button)
+        concat_fragment_button = wx.Button(self, id=wx.ID_ANY,
+                                           label="Concat fragments"
+                                                 "\nto one track",
+                                           pos=(810, 10),
+                                           size=(100, 50), style=0,
+                                           validator=wx.DefaultValidator,
+                                           name=wx.ButtonNameStr)
+        self.Bind(wx.EVT_BUTTON, self.concatenate_saved_fragments,
+                  concat_fragment_button)
+        delete_fragments_button = wx.Button(self, id=wx.ID_ANY,
+                                            label="Delete\nfragments",
+                                            pos=(920, 10),
+                                            size=(100, 50), style=0,
+                                            validator=wx.DefaultValidator,
+                                            name=wx.ButtonNameStr)
+        self.Bind(wx.EVT_BUTTON, self.clear_fragments,
+                  delete_fragments_button)
+        collect_fragments_button = wx.Button(self, id=wx.ID_ANY,
+                                             label="Collect all fragments\n"
+                                                   "to one",
+                                             pos=(810, 70),
+                                             size=(210, 50), style=0,
+                                             validator=wx.DefaultValidator,
+                                             name=wx.ButtonNameStr)
+        self.Bind(wx.EVT_BUTTON, self.collect_all_fragments_to_one,
+                  collect_fragments_button)
         self.draw_track()
+        self.draw_fragments()
 
     def on_open(self, e):
         open_file_dialog = wx.FileDialog(None, "Wave files", "", "",
@@ -147,14 +174,14 @@ class GUI(wx.Frame):
                 if self.file is not None:
                     self.opened_files = "Opened file:\n"
                     self.opened_files += self.file.filename
-                    self.draw_track()
                     if self.file.audioFormat != 1:
                         self.show_notification(
                             "File is encrypted! Some functions may not work",
                             "Warning!")
                 else:
                     self.opened_files = "No file!\n"
-                    self.draw_track()
+                self.draw_track()
+                self.draw_fragments()
 
     def save_project(self, e):
         d = datetime.datetime.now()
@@ -174,16 +201,33 @@ class GUI(wx.Frame):
             opened_files = self.file.filename
         #    elements_to_draw = self.file.channels[0][::770]
         # for i in range(0, 770):
-        #    length = elements_to_draw[i] // 150
-        #    lines.append(wx.StaticLine(self, id=wx.ID_ANY,
-        #                               pos=(11 + i, 500 - length // 2),
-        #                               size=(1, length),
-        #                               style=wx.LI_VERTICAL,
-        #                               name=wx.StaticLineNameStr))
+        #     length = elements_to_draw[i] // 150
+        #     lines.append(wx.StaticLine(self, id=wx.ID_ANY,
+        #                                pos=(11 + i, 500 - length // 2),
+        #                                size=(1, length),
+        #                                style=wx.LI_VERTICAL,
+        #                                name=wx.StaticLineNameStr))
         opened_files_panel = wx.StaticText(self,
                                            label=opened_files,
                                            pos=(10, 150),
                                            size=(500, 50))
+
+    def draw_fragments(self):
+        if len(self.fragments) == 0:
+            active_fragments = wx.StaticText(self,
+                                             label="No fragments available",
+                                             pos=(810, 150),
+                                             size=(200, 750))
+            return
+        text = ""
+        for i in range(0, len(self.fragments)):
+            text += "Fragment {0}\n".format(i + 1)
+            text += "Length: {0}\n\n".format(
+                len(self.fragments[i].channels[0]))
+        active_fragments = wx.StaticText(self,
+                                         label=text,
+                                         pos=(810, 150),
+                                         size=(200, 750))
 
     def save(self, e):
         dlg = wx.TextEntryDialog(self, 'Enter name of new file', 'Save')
@@ -214,7 +258,7 @@ class GUI(wx.Frame):
             right_index = length // self.start_slider.GetMax() * right_border
             fragment_channels = self.file.get_fragment(left_index, right_index)
             self.fragments.append(fragment.Fragment(fragment_channels))
-            print(len(fragment_channels[0]))
+            self.draw_fragments()
 
     def cut_fragment(self, e):
         if self.file is not None:
@@ -312,6 +356,12 @@ class GUI(wx.Frame):
                 wave_file.save_changes_in_file(name, self.file)
                 # wave_file.create_file_from_channels(name, compilation)
             dlg.Destroy()
+            self.file = wave_file.Wave(self.file.filename)
+            self.draw_track()
+
+    def clear_fragments(self, e):
+        self.fragments = []
+        self.draw_fragments()
 
     def increase_speed(self, e):
         dlg = wx.TextEntryDialog(self, 'Enter speed rate', 'Changing speed')
@@ -370,6 +420,56 @@ class GUI(wx.Frame):
     def reverse(self, e):
         self.file.reverse()
         self.show_notification("File has been reversed", "Reverse")
+
+    def collect_all_fragments_to_one(self, e):
+        if len(self.fragments) < 2:
+            self.show_notification("There must be 2+ fragments to collect",
+                                   "Error!")
+            return
+        min_channels = 100
+        for f in self.fragments:
+            if len(f.channels) < min_channels:
+                min_channels = len(f.channels)
+        result = []
+        for channel in self.fragments[0].channels:
+            result.append(channel.copy())
+        for i in range(1, len(self.fragments)):
+            temp_fragment = []
+            for channel in self.fragments[i].channels:
+                temp_fragment.append(channel.copy())
+            difference = abs(len(result[0]) - len(temp_fragment[0]))
+            zeros = np.zeros(difference).astype(result[0].dtype)
+            if len(result[0]) < len(temp_fragment[0]):
+                remaked = []
+                for channel in result:
+                    new = np.concatenate((channel, zeros))
+                    remaked.append(new)
+                result = remaked
+            elif len(result[0]) > len(temp_fragment[0]):
+                remaked = []
+                for channel in temp_fragment:
+                    new = np.concatenate((channel, zeros))
+                    remaked.append(new)
+                temp_fragment = remaked
+            for c in range(0, len(result)):
+                result[c] += temp_fragment[c]
+
+        dlg = wx.TextEntryDialog(self, 'Enter name of new file', 'Save')
+
+        if dlg.ShowModal() == wx.ID_OK:
+            name = dlg.GetValue()
+            if name[-4:] != ".wav":
+                name += ".wav"
+            self.file.channels = result
+            self.file.change_volume(0.05)
+            self.file.subchunk2Size = len(
+                self.file.channels[0]) * self.file.bitsPerSample // 4
+            self.file.chunkSize = self.file.subchunk2Size + 36
+            wave_file.save_changes_in_file(name, self.file)
+            # wave_file.create_file_from_channels(name, compilation)
+        dlg.Destroy()
+        self.file = wave_file.Wave(self.file.filename)
+        self.draw_track()
 
     def info(self, e):
         if self.file is None:

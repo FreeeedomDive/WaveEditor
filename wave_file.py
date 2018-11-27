@@ -41,8 +41,6 @@ def samples_to_frames(samples, sample_width):
 
 def save_changes_in_file(filename, file):
     path = "Result/" + filename
-    # for i in range(0, len(file.channels[0])):
-    #     print(file.channels[0][i])
     with open(path, 'wb') as f:
         f.write(file.chunkId.encode("UTF-8"))
         f.write(file.chunkSize.to_bytes(4, byteorder="little"))
@@ -63,8 +61,6 @@ def save_changes_in_file(filename, file):
 
 def create_file_from_channels(filename, channels):
     path = "Result/" + filename
-    for i in range(0, len(channels[0])):
-        print(channels[0][i])
     chunkID = "RIFF"
     format = "WAVE"
     subchunk1ID = "fmt"
@@ -142,27 +138,30 @@ class Wave:
 
     def fade_in(self, rate):
         length = int(self.sampleRate * rate)
-        amount = 1 / length
-        array = []
+        # amount = 1 / length
+        # array = []
+        array = np.linspace(0, 1, length)
         for i in range(0, length):
-            array.append(amount * i)
+            # array.append(amount * i)
             for channel in self.channels:
                 channel[i] *= array[i]
 
     def fade_out(self, rate):
         length = int(self.sampleRate * rate)
-        amount = 1 / length
-        array = []
+        # amount = 1 / length
+        # array = []
+        array = np.linspace(0, 1, length)
         for i in range(0, length):
-            array.append(amount * i)
+            # array.append(amount * i)
             for channel in self.channels:
                 channel[len(channel) - i - 1] *= array[i]
 
     def change_volume(self, rate):
-        new_channels = []
+        temp_type = self.channels[0].dtype
+        temp_channels = []
         for channel in self.channels:
-            new_channels.append(channel * rate)
-        self.channels = new_channels
+            temp_channels.append((channel * rate).astype(temp_type))
+        self.channels = temp_channels
 
     def get_info(self):
         info = "chunkID: " + self.chunkId
