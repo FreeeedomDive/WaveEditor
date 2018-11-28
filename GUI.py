@@ -31,9 +31,6 @@ class GUI(wx.Frame):
         exit_item = menu.Append(wx.ID_EXIT, "Exit")
         bar = wx.MenuBar()
         bar.Append(menu, "File")
-        menu2 = wx.Menu()
-        save_fragments_item = menu2.Append(wx.ID_ANY, "Save fragments to file")
-        bar.Append(menu2, "Fragments")
         self.SetMenuBar(bar)
         self.Bind(wx.EVT_MENU, self.on_open, open_item)
         self.Bind(wx.EVT_MENU, self.save, save_item)
@@ -41,8 +38,6 @@ class GUI(wx.Frame):
         self.Bind(wx.EVT_MENU, self.save_project, save_project_item)
         self.Bind(wx.EVT_MENU, self.on_about, about_item)
         self.Bind(wx.EVT_MENU, self.on_exit, exit_item)
-        self.Bind(wx.EVT_MENU, self.concatenate_saved_fragments,
-                  save_fragments_item)
         self.opened_files = "No file!"
         reverse_button = wx.BitmapButton(self,
                                          bitmap=wx.Bitmap(
