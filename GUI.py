@@ -140,6 +140,13 @@ class GUI(wx.Frame):
                                              name=wx.ButtonNameStr)
         self.Bind(wx.EVT_BUTTON, self.collect_all_fragments_to_one,
                   collect_fragments_button)
+        self.drawing_lines = []
+        for i in range(0, 770):
+            self.drawing_lines.append(wx.StaticLine(self, id=wx.ID_ANY,
+                                                    pos=(11 + i, 500),
+                                                    size=(1, 1),
+                                                    style=wx.LI_VERTICAL,
+                                                    name=wx.StaticLineNameStr))
         self.draw_track()
         self.draw_fragments()
 
@@ -188,20 +195,17 @@ class GUI(wx.Frame):
             pickle.dump(state, file)
 
     def draw_track(self):
-        # lines = []
+        print("draw")
         if self.file is None:
             opened_files = "No file!"
-        #    elements_to_draw = np.ones(770)
+            elements_to_draw = np.ones(770)
         else:
             opened_files = self.file.filename
-        #    elements_to_draw = self.file.channels[0][::770]
-        # for i in range(0, 770):
-        #     length = elements_to_draw[i] // 150
-        #     lines.append(wx.StaticLine(self, id=wx.ID_ANY,
-        #                                pos=(11 + i, 500 - length // 2),
-        #                                size=(1, length),
-        #                                style=wx.LI_VERTICAL,
-        #                                name=wx.StaticLineNameStr))
+            elements_to_draw = self.file.channels[0][::770]
+            for i in range(0, 770):
+                length = elements_to_draw[i] // 150
+                self.drawing_lines[i].SetSize((1, length))
+                self.drawing_lines[i].SetPosition((11 + i, 500 - length // 2))
         opened_files_panel = wx.StaticText(self,
                                            label=opened_files,
                                            pos=(10, 150),
@@ -245,9 +249,7 @@ class GUI(wx.Frame):
             left_border = self.start_slider.GetValue()
             right_border = self.end_slider.GetValue()
             if left_border > right_border:
-                temp = left_border
-                left_border = right_border
-                right_border = temp
+                left_border, right_border = right_border, left_border
             length = len(self.file.channels[0])
             left_index = length // self.start_slider.GetMax() * left_border
             right_index = length // self.start_slider.GetMax() * right_border
@@ -261,9 +263,7 @@ class GUI(wx.Frame):
             left_border = self.start_slider.GetValue()
             right_border = self.end_slider.GetValue()
             if left_border > right_border:
-                temp = left_border
-                left_border = right_border
-                right_border = temp
+                left_border, right_border = right_border, left_border
             if left_border == 0 and right_border == max:
                 self.show_notification(
                     "You can't delete all track!",
@@ -290,6 +290,7 @@ class GUI(wx.Frame):
             self.file.subchunk2Size = len(
                 self.file.channels[0]) * self.file.bitsPerSample // 4
             self.file.chunkSize = self.file.subchunk2Size + 36
+            self.draw_track()
 
     def reverse_fragment(self, e):
         if self.file is not None:
@@ -297,9 +298,7 @@ class GUI(wx.Frame):
             left_border = self.start_slider.GetValue()
             right_border = self.end_slider.GetValue()
             if left_border > right_border:
-                temp = left_border
-                left_border = right_border
-                right_border = temp
+                left_border, right_border = right_border, left_border
             if left_border == 0 and right_border == max:
                 self.show_notification(
                     "For reversing all the track use \"reverse\" button",
@@ -334,6 +333,7 @@ class GUI(wx.Frame):
                     self.file.get_fragment(right_index + 1, length))
                 self.file.channels = fragment.concatenate_fragments(
                     [start, fr, end])
+            self.draw_track()
 
     def concatenate_saved_fragments(self, e):
         if len(self.fragments) != 0:
@@ -349,7 +349,6 @@ class GUI(wx.Frame):
                     self.file.channels[0]) * self.file.bitsPerSample // 4
                 self.file.chunkSize = self.file.subchunk2Size + 36
                 wave_file.save_changes_in_file(name, self.file)
-                # wave_file.create_file_from_channels(name, compilation)
             dlg.Destroy()
             self.file = wave_file.Wave(self.file.filename)
             self.draw_track()
@@ -461,7 +460,6 @@ class GUI(wx.Frame):
                 self.file.channels[0]) * self.file.bitsPerSample // 4
             self.file.chunkSize = self.file.subchunk2Size + 36
             wave_file.save_changes_in_file(name, self.file)
-            # wave_file.create_file_from_channels(name, compilation)
         dlg.Destroy()
         self.file = wave_file.Wave(self.file.filename)
         self.draw_track()

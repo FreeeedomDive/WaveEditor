@@ -138,29 +138,34 @@ class Wave:
 
     def fade_in(self, rate):
         length = int(self.sampleRate * rate)
-        # amount = 1 / length
-        # array = []
         array = np.linspace(0, 1, length)
         for i in range(0, length):
-            # array.append(amount * i)
             for channel in self.channels:
                 channel[i] *= array[i]
 
     def fade_out(self, rate):
         length = int(self.sampleRate * rate)
-        # amount = 1 / length
-        # array = []
         array = np.linspace(0, 1, length)
         for i in range(0, length):
-            # array.append(amount * i)
             for channel in self.channels:
                 channel[len(channel) - i - 1] *= array[i]
 
     def change_volume(self, rate):
         temp_type = self.channels[0].dtype
+        min = max = 0
+        if temp_type == np.int8:
+            min = 0
+            max = 255
+        elif temp_type == np.int16:
+            min = -32768
+            max = 32767
+        elif temp_type == np.int32:
+            min = -2147483648
+            max = 2147483647
         temp_channels = []
         for channel in self.channels:
-            temp_channels.append((channel * rate).astype(temp_type))
+            temp_channels.append(
+                np.clip((channel * rate), min, max).astype(temp_type))
         self.channels = temp_channels
 
     def get_info(self):
