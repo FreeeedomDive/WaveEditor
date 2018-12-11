@@ -1,3 +1,5 @@
+import math
+
 import wx
 import wave_file
 import sys
@@ -6,6 +8,8 @@ import pickle
 import datetime
 import fragment
 import work_state
+import pyaudio
+import threading
 
 types = {
     1: np.int8,
@@ -31,6 +35,10 @@ class GUI(wx.Frame):
         exit_item = menu.Append(wx.ID_EXIT, "Exit")
         bar = wx.MenuBar()
         bar.Append(menu, "File")
+        menu2 = wx.Menu()
+        play_item = menu2.Append(wx.ID_ANY, "Play")
+        self.Bind(wx.EVT_MENU, self.play, play_item)
+        bar.Append(menu2, "Audio")
         self.SetMenuBar(bar)
         self.Bind(wx.EVT_MENU, self.on_open, open_item)
         self.Bind(wx.EVT_MENU, self.save, save_item)
@@ -135,9 +143,18 @@ class GUI(wx.Frame):
                                              label="Collect all fragments\n"
                                                    "to one",
                                              pos=(810, 70),
-                                             size=(210, 50), style=0,
+                                             size=(100, 50), style=0,
                                              validator=wx.DefaultValidator,
                                              name=wx.ButtonNameStr)
+        concat_and_move_button = wx.Button(self, id=wx.ID_ANY,
+                                           label="Concat and move\n"
+                                                 "to main window",
+                                           pos=(920, 70),
+                                           size=(100, 50), style=0,
+                                           validator=wx.DefaultValidator,
+                                           name=wx.ButtonNameStr)
+        self.Bind(wx.EVT_BUTTON, self.concat_and_move,
+                  concat_and_move_button)
         self.Bind(wx.EVT_BUTTON, self.collect_all_fragments_to_one,
                   collect_fragments_button)
         self.drawing_lines = []
@@ -147,6 +164,8 @@ class GUI(wx.Frame):
                                                     size=(1, 1),
                                                     style=wx.LI_VERTICAL,
                                                     name=wx.StaticLineNameStr))
+
+        self.is_playing = False
         self.draw_track()
         self.draw_fragments()
 
@@ -195,17 +214,19 @@ class GUI(wx.Frame):
             pickle.dump(state, file)
 
     def draw_track(self):
-        print("draw")
         if self.file is None:
             opened_files = "No file!"
             elements_to_draw = np.ones(770)
         else:
             opened_files = self.file.filename
             elements_to_draw = self.file.channels[0][::770]
-            for i in range(0, 770):
-                length = elements_to_draw[i] // 150
-                self.drawing_lines[i].SetSize((1, length))
-                self.drawing_lines[i].SetPosition((11 + i, 500 - length // 2))
+        for i in range(0, 770):
+            if i >= len(elements_to_draw):
+                length = 0
+            else:
+                length = math.fabs(elements_to_draw[i] // 150 + 1)
+            self.drawing_lines[i].SetSize((1, length))
+            self.drawing_lines[i].SetPosition((11 + i, 500 - length // 2))
         opened_files_panel = wx.StaticText(self,
                                            label=opened_files,
                                            pos=(10, 150),
@@ -421,6 +442,17 @@ class GUI(wx.Frame):
                                    "Error!")
             return
         min_channels = 100
+        temp_type = self.file.channels[0].dtype
+        min = max = 0
+        if temp_type == np.int8:
+            min = 0
+            max = 255
+        elif temp_type == np.int16:
+            min = -32768
+            max = 32767
+        elif temp_type == np.int32:
+            min = -2147483648
+            max = 2147483647
         for f in self.fragments:
             if len(f.channels) < min_channels:
                 min_channels = len(f.channels)
@@ -446,7 +478,8 @@ class GUI(wx.Frame):
                     remaked.append(new)
                 temp_fragment = remaked
             for c in range(0, len(result)):
-                result[c] += temp_fragment[c]
+                result[c] += np.clip((result[c] + temp_fragment[c]), min,
+                                     max).astype(temp_type)
 
         dlg = wx.TextEntryDialog(self, 'Enter name of new file', 'Save')
 
@@ -455,13 +488,25 @@ class GUI(wx.Frame):
             if name[-4:] != ".wav":
                 name += ".wav"
             self.file.channels = result
-            self.file.change_volume(0.05)
             self.file.subchunk2Size = len(
                 self.file.channels[0]) * self.file.bitsPerSample // 4
             self.file.chunkSize = self.file.subchunk2Size + 36
             wave_file.save_changes_in_file(name, self.file)
         dlg.Destroy()
         self.file = wave_file.Wave(self.file.filename)
+        self.draw_track()
+
+    def concat_and_move(self, e):
+        if len(self.fragments) < 2:
+            self.show_notification("There must be 2+ fragments to collect",
+                                   "Error!")
+            return
+        compilation = fragment.concatenate_fragments(self.fragments)
+        self.file.filename = "Mix"
+        self.file.channels = compilation
+        self.file.subchunk2Size = len(
+            self.file.channels[0]) * self.file.bitsPerSample // 4
+        self.file.chunkSize = self.file.subchunk2Size + 36
         self.draw_track()
 
     def info(self, e):
@@ -476,3 +521,46 @@ class GUI(wx.Frame):
     def show_notification(self, message, topic):
         dlg = wx.MessageDialog(self, message, topic, wx.OK)
         dlg.ShowModal()
+
+    def play(self, e):
+        if self.file is None:
+            return
+        thread = threading.Thread(target=self.start_player,
+                                  daemon=True)
+        thread.start()
+        self.show_player_dialog()
+
+    def show_player_dialog(self):
+        dlg = wx.MessageDialog(self, "Playing highlighted fragment",
+                               "Player", wx.OK)
+        if dlg.ShowModal() == wx.ID_OK:
+            if not self.is_playing:
+                dlg.Close()
+            else:
+                self.show_player_dialog()
+
+    def start_player(self):
+        self.is_playing = True
+        try:
+            player = pyaudio.PyAudio()
+            stream = player.open(
+                format=player.get_format_from_width(
+                    self.file.bitsPerSample // 8),
+                channels=self.file.numChannels,
+                rate=self.file.sampleRate,
+                output=True)
+            max = self.start_slider.GetMax()
+            left_border = self.start_slider.GetValue()
+            right_border = self.end_slider.GetValue()
+            if left_border > right_border:
+                left_border, right_border = right_border, left_border
+            length = len(self.file.channels[0])
+            start = length // max * left_border
+            end = length // max * right_border
+            stream.write(self.file.fragment_to_frames(start, end))
+            stream.stop_stream()
+            stream.close()
+            player.terminate()
+        except Exception:
+            self.show_notification("Something went wrong!", "Error!")
+        self.is_playing = False

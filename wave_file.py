@@ -118,6 +118,15 @@ class Wave:
         self.duration = self.subchunk2Size / self.sampleRate
         file.close()
 
+    def get_frames(self):
+        return bytes(channels_to_frames(self.channels,
+                                        self.bitsPerSample))
+
+    def fragment_to_frames(self, start, end):
+        fragment = self.get_fragment(start, end)
+        return bytes(channels_to_frames(fragment,
+                                        self.bitsPerSample))
+
     def get_fragment(self, start, end):
         channels_fragment = []
         for channel in self.channels:
