@@ -1,13 +1,13 @@
 import math
 
 import wx
-import wave_file
+import src.wave_file as wav
 import sys
 import numpy as np
 import pickle
 import datetime
-import fragment
-import work_state
+import src.fragment as fragment
+import src.work_state as work_state
 import pyaudio
 import threading
 
@@ -170,12 +170,12 @@ class GUI(wx.Frame):
         self.draw_fragments()
 
     def on_open(self, e):
-        open_file_dialog = wx.FileDialog(None, "Wave files", "", "",
+        open_file_dialog = wx.FileDialog(None, "Wave files", ".", "",
                                          "Wave files (*.wav)|*.wav")
         if open_file_dialog.ShowModal() == wx.ID_OK:
             path = open_file_dialog.GetPath()
             open_file_dialog.Destroy()
-            self.file = wave_file.Wave(path)
+            self.file = wav.Wave(path)
             self.draw_track()
             if self.file.audioFormat != 1:
                 self.show_notification(
@@ -183,7 +183,7 @@ class GUI(wx.Frame):
                     "Warning!")
 
     def open_project(self, e):
-        open_file_dialog = wx.FileDialog(None, "Pickle files", "", "",
+        open_file_dialog = wx.FileDialog(None, "Pickle files", ".", "",
                                          "Pickle files (*.pickle)|*.pickle")
         if open_file_dialog.ShowModal() == wx.ID_OK:
             path = open_file_dialog.GetPath()
@@ -250,14 +250,18 @@ class GUI(wx.Frame):
                                          size=(200, 750))
 
     def save(self, e):
-        dlg = wx.TextEntryDialog(self, 'Enter name of new file', 'Save')
-
-        if dlg.ShowModal() == wx.ID_OK:
-            name = dlg.GetValue()
-            if name[-4:] != ".wav":
-                name += ".wav"
-            wave_file.save_changes_in_file(name, self.file)
-        dlg.Destroy()
+        if self.file is not None:
+            dlg = wx.FileDialog(
+                None, message="Save file as",
+                defaultDir=".",
+                defaultFile="", wildcard="*.*", style=wx.FD_SAVE
+            )
+            if dlg.ShowModal() == wx.ID_OK:
+                path = dlg.GetPath()
+                if path[-4:] != ".wav":
+                    path += ".wav"
+                wav.save_changes_in_file(path, self.file)
+            dlg.Destroy()
 
     def on_about(self, e):
         self.show_notification("This is the editor for wav files", "About")
@@ -369,9 +373,9 @@ class GUI(wx.Frame):
                 self.file.subchunk2Size = len(
                     self.file.channels[0]) * self.file.bitsPerSample // 4
                 self.file.chunkSize = self.file.subchunk2Size + 36
-                wave_file.save_changes_in_file(name, self.file)
+                wav.save_changes_in_file(name, self.file)
             dlg.Destroy()
-            self.file = wave_file.Wave(self.file.filename)
+            self.file = wav.Wave(self.file.filename)
             self.draw_track()
 
     def clear_fragments(self, e):
@@ -491,9 +495,9 @@ class GUI(wx.Frame):
             self.file.subchunk2Size = len(
                 self.file.channels[0]) * self.file.bitsPerSample // 4
             self.file.chunkSize = self.file.subchunk2Size + 36
-            wave_file.save_changes_in_file(name, self.file)
+            wav.save_changes_in_file(name, self.file)
         dlg.Destroy()
-        self.file = wave_file.Wave(self.file.filename)
+        self.file = wav.Wave(self.file.filename)
         self.draw_track()
 
     def concat_and_move(self, e):

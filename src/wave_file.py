@@ -39,8 +39,7 @@ def samples_to_frames(samples, sample_width):
     return samples.astype(TYPES[sample_width]).tostring()
 
 
-def save_changes_in_file(filename, file):
-    path = "Result/" + filename
+def save_changes_in_file(path, file):
     with open(path, 'wb') as f:
         f.write(file.chunkId.encode("UTF-8"))
         f.write(file.chunkSize.to_bytes(4, byteorder="little"))

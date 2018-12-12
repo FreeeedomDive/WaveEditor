@@ -1,5 +1,5 @@
-import CLI
-import GUI
+import src.CLI as CLI
+import src.GUI as GUI
 import wx
 import sys
 
