@@ -176,6 +176,28 @@ class Wave:
                 np.clip((channel * rate), min, max).astype(temp_type))
         self.channels = temp_channels
 
+    def make_average_loudness(self):
+        new_channels = []
+        window_width = 25000
+        for ch in range(0, len(self.channels)):
+            new_channel = np.zeros(len(self.channels[ch]))
+            for i in range(0, len(self.channels[ch])):
+                left = right = i
+                if i - 25000 < 0:
+                    left = 0
+                else:
+                    left = i - 25000
+                if i + 25000 > len(self.channels[ch]) - 1:
+                    right = len(self.channels[ch]) - 1
+                else:
+                    right = i + 25000
+                window = self.channels[ch][left:right]
+                sum = window.sum()
+                new_channel[i] = (sum / window_width) * 5
+                print("Done {}%".format(int((((i / len(self.channels[ch]))/len(self.channels) + ch / len(self.channels)) * 100))))
+            new_channels.append(new_channel)
+        self.channels = new_channels
+
     def get_info(self):
         info = "chunkID: " + self.chunkId
         info += "\nchunkSize: " + str(self.chunkSize)

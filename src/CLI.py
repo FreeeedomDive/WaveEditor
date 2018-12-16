@@ -33,7 +33,7 @@ class CLI:
                     path = dlg.GetPath()
                     if path[-4:] != ".wav":
                         path += ".wav"
-                        wav.save_changes_in_file(path, self.file)
+                wav.save_changes_in_file(path, self.file)
                 mainloop = False
             else:
                 self.execute_command(command)
@@ -80,6 +80,10 @@ class CLI:
                 print("Usage: volume *rate*")
             rate = float(args[1])
             self.file.change_volume(rate)
+        elif args[0] == "average":
+            print("Start...")
+            self.file.make_average_loudness()
+            print("Finish!")
         elif command == "info":
             print(self.file.get_info())
         else:

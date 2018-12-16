@@ -363,18 +363,11 @@ class GUI(wx.Frame):
     def concatenate_saved_fragments(self, e):
         if len(self.fragments) != 0:
             compilation = fragment.concatenate_fragments(self.fragments)
-            dlg = wx.TextEntryDialog(self, 'Enter name of new file', 'Save')
-
-            if dlg.ShowModal() == wx.ID_OK:
-                name = dlg.GetValue()
-                if name[-4:] != ".wav":
-                    name += ".wav"
-                self.file.channels = compilation
-                self.file.subchunk2Size = len(
-                    self.file.channels[0]) * self.file.bitsPerSample // 4
-                self.file.chunkSize = self.file.subchunk2Size + 36
-                wav.save_changes_in_file(name, self.file)
-            dlg.Destroy()
+            self.file.channels = compilation
+            self.file.subchunk2Size = len(
+                self.file.channels[0]) * self.file.bitsPerSample // 4
+            self.file.chunkSize = self.file.subchunk2Size + 36
+            self.save(e)
             self.file = wav.Wave(self.file.filename)
             self.draw_track()
 
@@ -485,18 +478,11 @@ class GUI(wx.Frame):
                 result[c] += np.clip((result[c] + temp_fragment[c]), min,
                                      max).astype(temp_type)
 
-        dlg = wx.TextEntryDialog(self, 'Enter name of new file', 'Save')
-
-        if dlg.ShowModal() == wx.ID_OK:
-            name = dlg.GetValue()
-            if name[-4:] != ".wav":
-                name += ".wav"
-            self.file.channels = result
-            self.file.subchunk2Size = len(
-                self.file.channels[0]) * self.file.bitsPerSample // 4
-            self.file.chunkSize = self.file.subchunk2Size + 36
-            wav.save_changes_in_file(name, self.file)
-        dlg.Destroy()
+        self.file.channels = result
+        self.file.subchunk2Size = len(
+            self.file.channels[0]) * self.file.bitsPerSample // 4
+        self.file.chunkSize = self.file.subchunk2Size + 36
+        self.save(e)
         self.file = wav.Wave(self.file.filename)
         self.draw_track()
 
@@ -517,8 +503,7 @@ class GUI(wx.Frame):
         if self.file is None:
             message = "No file!"
         else:
-            message = ""
-            message += "Track: {0}\n".format(self.file.filename)
+            message = "Track: {0}\n".format(self.file.filename)
             message += self.file.get_info()
         self.show_notification(message, "Files")
 
