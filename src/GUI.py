@@ -122,19 +122,10 @@ class GUI(wx.Frame):
                                            validator=wx.DefaultValidator,
                                            name=wx.ButtonNameStr)
         self.Bind(wx.EVT_BUTTON, self.cut_fragment, delete_fragment_button)
-        concat_fragment_button = wx.Button(self, id=wx.ID_ANY,
-                                           label="Concat fragments"
-                                                 "\nto one track",
-                                           pos=(810, 10),
-                                           size=(100, 50), style=0,
-                                           validator=wx.DefaultValidator,
-                                           name=wx.ButtonNameStr)
-        self.Bind(wx.EVT_BUTTON, self.concatenate_saved_fragments,
-                  concat_fragment_button)
         delete_fragments_button = wx.Button(self, id=wx.ID_ANY,
                                             label="Delete\nfragments",
-                                            pos=(920, 10),
-                                            size=(100, 50), style=0,
+                                            pos=(810, 10),
+                                            size=(210, 50), style=0,
                                             validator=wx.DefaultValidator,
                                             name=wx.ButtonNameStr)
         self.Bind(wx.EVT_BUTTON, self.clear_fragments,
@@ -147,8 +138,8 @@ class GUI(wx.Frame):
                                              validator=wx.DefaultValidator,
                                              name=wx.ButtonNameStr)
         concat_and_move_button = wx.Button(self, id=wx.ID_ANY,
-                                           label="Concat and move\n"
-                                                 "to main window",
+                                           label="Concatenate\n"
+                                                 "fragments",
                                            pos=(920, 70),
                                            size=(100, 50), style=0,
                                            validator=wx.DefaultValidator,
@@ -360,17 +351,6 @@ class GUI(wx.Frame):
                     [start, fr, end])
             self.draw_track()
 
-    def concatenate_saved_fragments(self, e):
-        if len(self.fragments) != 0:
-            compilation = fragment.concatenate_fragments(self.fragments)
-            self.file.channels = compilation
-            self.file.subchunk2Size = len(
-                self.file.channels[0]) * self.file.bitsPerSample // 4
-            self.file.chunkSize = self.file.subchunk2Size + 36
-            self.save(e)
-            self.file = wav.Wave(self.file.filename)
-            self.draw_track()
-
     def clear_fragments(self, e):
         self.fragments = []
         self.draw_fragments()
@@ -438,52 +418,13 @@ class GUI(wx.Frame):
             self.show_notification("There must be 2+ fragments to collect",
                                    "Error!")
             return
-        min_channels = 100
         temp_type = self.file.channels[0].dtype
-        min = max = 0
-        if temp_type == np.int8:
-            min = 0
-            max = 255
-        elif temp_type == np.int16:
-            min = -32768
-            max = 32767
-        elif temp_type == np.int32:
-            min = -2147483648
-            max = 2147483647
-        for f in self.fragments:
-            if len(f.channels) < min_channels:
-                min_channels = len(f.channels)
-        result = []
-        for channel in self.fragments[0].channels:
-            result.append(channel.copy())
-        for i in range(1, len(self.fragments)):
-            temp_fragment = []
-            for channel in self.fragments[i].channels:
-                temp_fragment.append(channel.copy())
-            difference = abs(len(result[0]) - len(temp_fragment[0]))
-            zeros = np.zeros(difference).astype(result[0].dtype)
-            if len(result[0]) < len(temp_fragment[0]):
-                remaked = []
-                for channel in result:
-                    new = np.concatenate((channel, zeros))
-                    remaked.append(new)
-                result = remaked
-            elif len(result[0]) > len(temp_fragment[0]):
-                remaked = []
-                for channel in temp_fragment:
-                    new = np.concatenate((channel, zeros))
-                    remaked.append(new)
-                temp_fragment = remaked
-            for c in range(0, len(result)):
-                result[c] += np.clip((result[c] + temp_fragment[c]), min,
-                                     max).astype(temp_type)
-
-        self.file.channels = result
+        self.file.channels = fragment.collect_fragments_to_one(self.fragments,
+                                                               temp_type)
+        self.file.filename = "United mix"
         self.file.subchunk2Size = len(
             self.file.channels[0]) * self.file.bitsPerSample // 4
         self.file.chunkSize = self.file.subchunk2Size + 36
-        self.save(e)
-        self.file = wav.Wave(self.file.filename)
         self.draw_track()
 
     def concat_and_move(self, e):
@@ -492,7 +433,7 @@ class GUI(wx.Frame):
                                    "Error!")
             return
         compilation = fragment.concatenate_fragments(self.fragments)
-        self.file.filename = "Mix"
+        self.file.filename = "Concatenated mix"
         self.file.channels = compilation
         self.file.subchunk2Size = len(
             self.file.channels[0]) * self.file.bitsPerSample // 4
