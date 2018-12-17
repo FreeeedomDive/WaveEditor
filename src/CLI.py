@@ -11,7 +11,7 @@ class CLI:
     def start(self):
         mainloop = True
         app = wx.App(False)
-        open_file_dialog = wx.FileDialog(None, "Wave files", "", "",
+        open_file_dialog = wx.FileDialog(None, "Wave files", ".", ".",
                                          "Wave files (*.wav)|*.wav")
         if open_file_dialog.ShowModal() == wx.ID_CANCEL:
             print("No selected file")
@@ -72,6 +72,15 @@ class CLI:
             else:
                 rate = float(args[1])
                 self.file.fade_out(rate)
+        elif args[0] == "height":
+            if self.file.audioFormat != 1:
+                print("This feature is unavailable for this file")
+                return
+            if len(args) == 1:
+                print("Usage: height *rate*")
+            else:
+                ratio = float(args[1])
+                self.file.change_height(ratio)
         elif args[0] == "volume":
             if self.file.audioFormat != 1:
                 print("This feature is unavailable for this file")

@@ -176,6 +176,20 @@ class Wave:
                 np.clip((channel * rate), min, max).astype(temp_type))
         self.channels = temp_channels
 
+    def change_height(self, ratio):
+        self.sampleRate = int(self.sampleRate * ratio)
+        self.change_channel_length(ratio)
+
+    def change_channel_length(self, ratio):
+        ratio = int(ratio * 10)
+        temp_channels = []
+        for channel in self.channels:
+            ch = np.repeat(channel, ratio)[::10]
+            temp_channels.append(ch)
+        self.channels = temp_channels
+        self.subchunk2Size = len(self.channels[0]) * self.bitsPerSample // 4
+        self.chunkSize = self.subchunk2Size + 36
+
     def make_average_loudness(self):
         new_channels = []
         window_width = 25000

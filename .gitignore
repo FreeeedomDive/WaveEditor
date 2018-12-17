@@ -4,3 +4,4 @@ __pycache__/
 tasks.txt
 temp_plot.txt
 *.pickle
+.coverage
