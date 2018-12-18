@@ -52,7 +52,7 @@ def collect_fragments_to_one(fragments, type):
                 remaked.append(new)
             temp_fragment = remaked
         for c in range(0, len(result)):
-            result[c] += np.clip((result[c] + temp_fragment[c]), min,
+            result[c] = np.clip((result[c] + temp_fragment[c]), min,
                                  max).astype(type)
     return result
 
