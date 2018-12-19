@@ -200,8 +200,18 @@ class GUI(wx.Frame):
         filename = "SavedProjects/save-{0}-{1}-{2}-{3}-{4}-{5}.pickle" \
             .format(d.year, d.month, d.day, d.hour,
                     d.minute, d.second)
+        path = "." + filename
+        if self.file is not None:
+            dlg = wx.FileDialog(
+                None, message="Save file as",
+                defaultDir=".",
+                defaultFile=filename, wildcard="*.pickle", style=wx.FD_SAVE
+            )
+            if dlg.ShowModal() == wx.ID_OK:
+                path = dlg.GetPath()
+            dlg.Destroy()
         state = work_state.WorkState(self.file, self.fragments)
-        with open(filename, 'wb') as file:
+        with open(path, 'wb') as file:
             pickle.dump(state, file)
 
     def draw_track(self):

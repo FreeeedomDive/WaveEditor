@@ -1,4 +1,5 @@
 import unittest
+import numpy as np
 from src import wave_file
 from src import fragment
 
@@ -53,3 +54,26 @@ class TestWave(unittest.TestCase):
         test_file.speed_down(rate)
         second_sample_rate = int(first_sample_rate // rate)
         self.assertEqual(second_sample_rate, test_file.sampleRate)
+
+    def test_fade_in_and_out(self):
+        test_file = wave_file.Wave("../Files/01 Bloody Nose.wav")
+        array = np.linspace(0, 1, test_file.sampleRate * 3)
+        test_value = test_file.channels[0][12345]
+        test_file.fade_in(3)
+        self.assertEqual(test_file.channels[0][12345],
+                         int(test_value * array[12345]))
+        test_value2 = test_file.channels[0][len(test_file.channels[0]) - 12346]
+        test_file.fade_out(3)
+        self.assertEqual(
+            test_file.channels[0][len(test_file.channels[0]) - 12346],
+            int(test_value2 * array[12345]))
+
+    def test_change_volume(self):
+        test_file = wave_file.Wave("../Files/01 Bloody Nose.wav")
+        test_value = test_file.channels[0][55555]
+        test_value = int(test_value * 0.7)
+        test_file.change_volume(0.7)
+        self.assertEqual(test_file.channels[0][55555], test_value)
+        test_value = int(test_value * 1.5)
+        test_file.change_volume(1.5)
+        self.assertEqual(test_file.channels[0][55555], test_value)
