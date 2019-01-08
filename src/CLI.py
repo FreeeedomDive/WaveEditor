@@ -90,9 +90,11 @@ class CLI:
             rate = float(args[1])
             self.file.change_volume(rate)
         elif args[0] == "average":
-            print("Start...")
-            self.file.make_average_loudness()
-            print("Finish!")
+            if len(args) == 1:
+                print("Usage: average *rate*")
+            else:
+                ratio = float(args[1])
+                self.file.average_loudness(ratio)
         elif command == "info":
             print(self.file.get_info())
         else:

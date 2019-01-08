@@ -190,26 +190,32 @@ class Wave:
         self.subchunk2Size = len(self.channels[0]) * self.bitsPerSample // 4
         self.chunkSize = self.subchunk2Size + 36
 
-    def make_average_loudness(self):
+    def average_loudness(self, rate):
+        window_size = 40000
         new_channels = []
-        window_width = 25000
-        for ch in range(0, len(self.channels)):
-            new_channel = np.zeros(len(self.channels[ch]))
-            for i in range(0, len(self.channels[ch])):
-                left = right = i
-                if i - 25000 < 0:
-                    left = 0
-                else:
-                    left = i - 25000
-                if i + 25000 > len(self.channels[ch]) - 1:
-                    right = len(self.channels[ch]) - 1
-                else:
-                    right = i + 25000
-                window = self.channels[ch][left:right]
-                sum = window.sum()
-                new_channel[i] = (sum / window_width) * 5
-                print("Done {}%".format(int((((i / len(self.channels[ch]))/len(self.channels) + ch / len(self.channels)) * 100))))
-            new_channels.append(new_channel)
+        for channel in self.channels:
+            if len(channel) < window_size:
+                return channel
+            abs_channel = np.absolute(channel)
+            total_average = sum(abs_channel) / len(abs_channel)
+            cur_sum = sum(abs_channel[0:window_size])
+            float_window_size = np.float64(window_size)
+            result = np.zeros(len(channel), channel.dtype)
+            for i in range(0, len(channel)):
+                if i - window_size // 2 >= 0 and \
+                        i + window_size // 2 < len(channel):
+                    cur_sum -= abs_channel[i - window_size // 2]
+                    cur_sum += abs_channel[i + window_size // 2]
+                window_average = cur_sum / float_window_size
+                ratio = window_average / total_average
+                diff = ratio - 1
+                diff *= rate
+                ratio = 1 + diff
+                res = abs_channel[i] / ratio
+                if channel[i] < 0:
+                    res = -res
+                result[i] = res
+            new_channels.append(result)
         self.channels = new_channels
 
     def get_info(self):

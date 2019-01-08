@@ -220,7 +220,8 @@ class GUI(wx.Frame):
             elements_to_draw = np.ones(770)
         else:
             opened_files = self.file.filename
-            elements_to_draw = self.file.channels[0][::770]
+            step = max(len(self.file.channels[0]) // 770, 1)
+            elements_to_draw = self.file.channels[0][::step]
         for i in range(0, 770):
             if i >= len(elements_to_draw):
                 length = 0
