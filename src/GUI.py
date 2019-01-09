@@ -1,15 +1,14 @@
 import math
-
 import wx
-import src.wave_file as wav
 import sys
 import numpy as np
 import pickle
 import datetime
-import src.fragment as fragment
-import src.work_state as work_state
 import pyaudio
 import threading
+import src.wave_file as wav
+import src.fragment as fragment
+import src.work_state as work_state
 
 types = {
     1: np.int8,
@@ -20,7 +19,7 @@ types = {
 
 class GUI(wx.Frame):
     def __init__(self, parent, title):
-        wx.Frame.__init__(self, parent, title=title, size=(1050, 800))
+        wx.Frame.__init__(self, parent, title=title, size=(1160, 800))
         self.Show(True)
 
         self.file = None
@@ -71,32 +70,37 @@ class GUI(wx.Frame):
                                         bitmap=wx.Bitmap(
                                             "Images/volume.png"),
                                         pos=(560, 10))
+        average_button = wx.BitmapButton(self,
+                                         bitmap=wx.Bitmap(
+                                             "Images/average.png"),
+                                         pos=(670, 10))
         info_button = wx.BitmapButton(self,
                                       bitmap=wx.Bitmap(
                                           "Images/info.png"),
-                                      pos=(670, 10))
+                                      pos=(780, 10))
         self.Bind(wx.EVT_BUTTON, self.increase_speed, speed_up_button)
         self.Bind(wx.EVT_BUTTON, self.decrease_speed, speed_down_button)
         self.Bind(wx.EVT_BUTTON, self.change_volume, volume_button)
         self.Bind(wx.EVT_BUTTON, self.reverse, reverse_button)
         self.Bind(wx.EVT_BUTTON, self.fade_in, fade_in_button)
         self.Bind(wx.EVT_BUTTON, self.fade_out, fade_out_button)
+        self.Bind(wx.EVT_BUTTON, self.average, average_button)
         self.Bind(wx.EVT_BUTTON, self.info, info_button)
         self.start_slider = wx.Slider(self, id=wx.ID_ANY, value=0,
                                       minValue=0, maxValue=1000,
                                       pos=(10, 300),
-                                      size=(770, 20),
+                                      size=(880, 20),
                                       style=wx.SL_HORIZONTAL,
                                       validator=wx.DefaultValidator,
                                       name=wx.SliderNameStr)
         self.end_slider = wx.Slider(self, id=wx.ID_ANY, value=1000,
                                     minValue=0, maxValue=1000,
                                     pos=(10, 325),
-                                    size=(770, 20),
+                                    size=(880, 20),
                                     style=wx.SL_HORIZONTAL,
                                     validator=wx.DefaultValidator,
                                     name=wx.SliderNameStr)
-        separator = wx.StaticLine(self, id=wx.ID_ANY, pos=(790, 0),
+        separator = wx.StaticLine(self, id=wx.ID_ANY, pos=(900, 0),
                                   size=(5, 800),
                                   style=wx.LI_VERTICAL,
                                   name=wx.StaticLineNameStr)
@@ -124,7 +128,7 @@ class GUI(wx.Frame):
         self.Bind(wx.EVT_BUTTON, self.cut_fragment, delete_fragment_button)
         delete_fragments_button = wx.Button(self, id=wx.ID_ANY,
                                             label="Delete\nfragments",
-                                            pos=(810, 10),
+                                            pos=(920, 10),
                                             size=(210, 50), style=0,
                                             validator=wx.DefaultValidator,
                                             name=wx.ButtonNameStr)
@@ -133,14 +137,14 @@ class GUI(wx.Frame):
         collect_fragments_button = wx.Button(self, id=wx.ID_ANY,
                                              label="Collect all fragments\n"
                                                    "to one",
-                                             pos=(810, 70),
+                                             pos=(920, 70),
                                              size=(100, 50), style=0,
                                              validator=wx.DefaultValidator,
                                              name=wx.ButtonNameStr)
         concat_and_move_button = wx.Button(self, id=wx.ID_ANY,
                                            label="Concatenate\n"
                                                  "fragments",
-                                           pos=(920, 70),
+                                           pos=(1030, 70),
                                            size=(100, 50), style=0,
                                            validator=wx.DefaultValidator,
                                            name=wx.ButtonNameStr)
@@ -149,7 +153,7 @@ class GUI(wx.Frame):
         self.Bind(wx.EVT_BUTTON, self.collect_all_fragments_to_one,
                   collect_fragments_button)
         self.drawing_lines = []
-        for i in range(0, 770):
+        for i in range(0, 880):
             self.drawing_lines.append(wx.StaticLine(self, id=wx.ID_ANY,
                                                     pos=(11 + i, 500),
                                                     size=(1, 1),
@@ -217,12 +221,12 @@ class GUI(wx.Frame):
     def draw_track(self):
         if self.file is None:
             opened_files = "No file!"
-            elements_to_draw = np.ones(770)
+            elements_to_draw = np.ones(880)
         else:
             opened_files = self.file.filename
-            step = max(len(self.file.channels[0]) // 770, 1)
+            step = max(len(self.file.channels[0]) // 880, 1)
             elements_to_draw = self.file.channels[0][::step]
-        for i in range(0, 770):
+        for i in range(0, 880):
             if i >= len(elements_to_draw):
                 length = 0
             else:
@@ -232,13 +236,13 @@ class GUI(wx.Frame):
         opened_files_panel = wx.StaticText(self,
                                            label=opened_files,
                                            pos=(10, 150),
-                                           size=(500, 50))
+                                           size=(800, 50))
 
     def draw_fragments(self):
         if len(self.fragments) == 0:
             active_fragments = wx.StaticText(self,
                                              label="No fragments available",
-                                             pos=(810, 150),
+                                             pos=(920, 150),
                                              size=(200, 750))
             return
         text = ""
@@ -248,7 +252,7 @@ class GUI(wx.Frame):
                 len(self.fragments[i].channels[0]))
         active_fragments = wx.StaticText(self,
                                          label=text,
-                                         pos=(810, 150),
+                                         pos=(920, 150),
                                          size=(200, 750))
 
     def save(self, e):
@@ -266,7 +270,17 @@ class GUI(wx.Frame):
             dlg.Destroy()
 
     def on_about(self, e):
-        self.show_notification("This is the editor for wav files", "About")
+        help = "This is the editor for wav files\n"
+        help += "About buttons:\n"
+        help += " 1 - reverse\n"
+        help += " 2 - speed up\n"
+        help += " 3 - speed down\n"
+        help += " 4 - fade in\n"
+        help += " 5 - fade out\n"
+        help += " 6 - change volume\n"
+        help += " 7 - average loudness\n"
+        help += " 8 - track info"
+        self.show_notification(help, "About")
 
     def on_exit(self, e):
         sys.exit(0)
@@ -366,63 +380,116 @@ class GUI(wx.Frame):
         self.fragments = []
         self.draw_fragments()
 
-    def increase_speed(self, e):
-        dlg = wx.TextEntryDialog(self, 'Enter speed rate', 'Changing speed')
+    @staticmethod
+    def check_number(num):
+        try:
+            number = float(num)
+        except ValueError:
+            number = None
+        return number
 
-        if dlg.ShowModal() == wx.ID_OK:
-            rate = float(dlg.GetValue())
-            self.file.speed_up(rate)
-        dlg.Destroy()
+    def increase_speed(self, e):
+        if self.file is not None:
+            dlg = wx.TextEntryDialog(self, 'Enter speed rate',
+                                     'Changing speed')
+
+            if dlg.ShowModal() == wx.ID_OK:
+                rate = self.check_number(dlg.GetValue())
+                if rate is not None:
+                    self.file.speed_up(rate)
+                else:
+                    self.show_notification("Wrong number!", "Error!")
+            dlg.Destroy()
 
     def decrease_speed(self, e):
-        dlg = wx.TextEntryDialog(self, 'Enter slow rate', 'Changing speed')
-        if dlg.ShowModal() == wx.ID_OK:
-            rate = float(dlg.GetValue())
-            self.file.speed_down(rate)
-        dlg.Destroy()
+        if self.file is not None:
+            dlg = wx.TextEntryDialog(self, 'Enter slow rate', 'Changing speed')
+            if dlg.ShowModal() == wx.ID_OK:
+                rate = self.check_number(dlg.GetValue())
+                if rate is not None:
+                    self.file.speed_down(rate)
+                else:
+                    self.show_notification("Wrong number!", "Error!")
+            dlg.Destroy()
 
     def change_volume(self, e):
-        if self.file.audioFormat != 1:
-            self.show_notification(
-                "This file does not support this feature.",
-                "Unsupported operation")
-            return
-        dlg = wx.TextEntryDialog(self, 'Enter new value of volume',
-                                 'Volume')
-        if dlg.ShowModal() == wx.ID_OK:
-            volume = float(dlg.GetValue())
-            self.file.change_volume(volume)
-        dlg.Destroy()
+        if self.file is not None:
+            if self.file.audioFormat != 1:
+                self.show_notification(
+                    "This file does not support this feature.",
+                    "Unsupported operation")
+                return
+            dlg = wx.TextEntryDialog(self, 'Enter new value of volume',
+                                     'Volume')
+            if dlg.ShowModal() == wx.ID_OK:
+                rate = self.check_number(dlg.GetValue())
+                if rate is not None:
+                    self.file.change_volume(rate)
+                else:
+                    self.show_notification("Wrong number!", "Error!")
+            dlg.Destroy()
+            self.draw_track()
 
     def fade_in(self, e):
-        if self.file.audioFormat != 1:
-            self.show_notification(
-                "This file does not support this feature.",
-                "Unsupported operation")
-            return
-        dlg = wx.TextEntryDialog(self, 'Enter length for fade_in in seconds',
-                                 'Fade in')
-        if dlg.ShowModal() == wx.ID_OK:
-            rate = float(dlg.GetValue())
-            self.file.fade_in(rate)
-        dlg.Destroy()
+        if self.file is not None:
+            if self.file.audioFormat != 1:
+                self.show_notification(
+                    "This file does not support this feature.",
+                    "Unsupported operation")
+                return
+            dlg = wx.TextEntryDialog(self,
+                                     'Enter length for fade_in in seconds',
+                                     'Fade in')
+            if dlg.ShowModal() == wx.ID_OK:
+                rate = self.check_number(dlg.GetValue())
+                if rate is not None:
+                    self.file.fade_in(rate)
+                else:
+                    self.show_notification("Wrong number!", "Error!")
+            dlg.Destroy()
+            self.draw_track()
 
     def fade_out(self, e):
-        if self.file.audioFormat != 1:
-            self.show_notification(
-                "This file does not support this feature.",
-                "Unsupported operation")
-            return
-        dlg = wx.TextEntryDialog(self, 'Enter length for fade_out in seconds',
-                                 'Fade out')
-        if dlg.ShowModal() == wx.ID_OK:
-            rate = float(dlg.GetValue())
-            self.file.fade_out(rate)
-        dlg.Destroy()
+        if self.file is not None:
+            if self.file.audioFormat != 1:
+                self.show_notification(
+                    "This file does not support this feature.",
+                    "Unsupported operation")
+                return
+            dlg = wx.TextEntryDialog(self,
+                                     'Enter length for fade_out in seconds',
+                                     'Fade out')
+            if dlg.ShowModal() == wx.ID_OK:
+                rate = self.check_number(dlg.GetValue())
+                if rate is not None:
+                    self.file.fade_out(rate)
+                else:
+                    self.show_notification("Wrong number!", "Error!")
+            dlg.Destroy()
+            self.draw_track()
+
+    def average(self, e):
+        if self.file is not None:
+            if self.file.audioFormat != 1:
+                self.show_notification(
+                    "This file does not support this feature.",
+                    "Unsupported operation")
+                return
+
+            dlg = wx.MessageDialog(self, "This function may take a "
+                                         "very long time.\n"
+                                         "Window can be may be frozen\n"
+                                         "Click OK to start.", "Average",
+                                   wx.OK)
+            if dlg.ShowModal() == wx.CANCEL:
+                return
+            self.file.average_loudness()
+            self.draw_track()
 
     def reverse(self, e):
-        self.file.reverse()
-        self.show_notification("File has been reversed", "Reverse")
+        if self.file is not None:
+            self.file.reverse()
+            self.show_notification("File has been reversed", "Reverse")
 
     def collect_all_fragments_to_one(self, e):
         if len(self.fragments) < 2:
@@ -439,10 +506,6 @@ class GUI(wx.Frame):
         self.draw_track()
 
     def concat_and_move(self, e):
-        if len(self.fragments) < 2:
-            self.show_notification("There must be 2+ fragments to collect",
-                                   "Error!")
-            return
         compilation = fragment.concatenate_fragments(self.fragments)
         self.file.filename = "Concatenated mix"
         self.file.channels = compilation

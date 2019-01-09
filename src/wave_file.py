@@ -190,7 +190,7 @@ class Wave:
         self.subchunk2Size = len(self.channels[0]) * self.bitsPerSample // 4
         self.chunkSize = self.subchunk2Size + 36
 
-    def average_loudness(self, rate):
+    def average_loudness(self):
         window_size = 40000
         new_channels = []
         for channel in self.channels:
@@ -208,13 +208,8 @@ class Wave:
                     cur_sum += abs_channel[i + window_size // 2]
                 window_average = cur_sum / float_window_size
                 ratio = window_average / total_average
-                diff = ratio - 1
-                diff *= rate
-                ratio = 1 + diff
-                res = abs_channel[i] / ratio
-                if channel[i] < 0:
-                    res = -res
-                result[i] = res
+                result[i] = abs_channel[i] / ratio if channel[i] > 0 else \
+                    -abs_channel[i] / ratio
             new_channels.append(result)
         self.channels = new_channels
 

@@ -1,6 +1,6 @@
-import src.wave_file as wav
 import wx
 import sys
+import src.wave_file as wav
 
 
 class CLI:
@@ -21,8 +21,9 @@ class CLI:
         self.file = wav.Wave(path)
         print("Selected file: {0}".format(path))
         while mainloop:
-            print("Enter command")
-            command = input()
+            command = input("Enter command: ")
+            if command == "exit":
+                mainloop = False
             if command == "save":
                 dlg = wx.FileDialog(
                     None, message="Save file as",
@@ -90,11 +91,10 @@ class CLI:
             rate = float(args[1])
             self.file.change_volume(rate)
         elif args[0] == "average":
-            if len(args) == 1:
-                print("Usage: average *rate*")
-            else:
-                ratio = float(args[1])
-                self.file.average_loudness(ratio)
+            if self.file.audioFormat != 1:
+                print("This feature is unavailable for this file")
+                return
+            self.file.average_loudness()
         elif command == "info":
             print(self.file.get_info())
         else:
